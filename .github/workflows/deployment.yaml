@@ -9,7 +9,7 @@ on:
 jobs:
   deploy:
     name: Deploy
-    runs-on: sel-hosted
+    runs-on: self-hosted
     steps:
       - name: Checking out the repository
         uses: actions/checkout@v4
