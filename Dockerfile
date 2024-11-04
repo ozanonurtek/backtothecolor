@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libgtk2.0-dev \
     wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
