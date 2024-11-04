@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+pillow
+torch==2.0.0
+numpy==1.24.2
+scikit-image
+matplotlib
+pillow-heif

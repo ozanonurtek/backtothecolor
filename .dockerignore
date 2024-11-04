@@ -1,0 +1,8 @@
+.venv
+backups
+backups/*
+db
+db/*
+.env
+.git
+.gitignore
