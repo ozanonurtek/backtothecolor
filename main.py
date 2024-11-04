@@ -233,3 +233,9 @@ async def read_item(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html"
     )
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def read_item(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="privacy.html"
+    )
