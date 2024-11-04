@@ -1,10 +1,12 @@
 version: '3.8'
-
 services:
   backtotheblack:
     image: backtotheblack/web:latest.${GITHUB_RUN_ID}
     ports:
-      - 80:8000
+      - published: 80
+        target: 8000
+        protocol: tcp
+        mode: host
     volumes:
       - /data/models:/app/models:ro
     build:
@@ -17,6 +19,5 @@ services:
         condition: on-failure
     networks:
       - backtotheblack-network
-
 networks:
   backtotheblack-network:
