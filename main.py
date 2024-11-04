@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, staticfiles
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+
 import torch
 import numpy as np
 import io
@@ -206,6 +208,8 @@ async def health_check():
 
 
 app = FastAPI(title="main app")
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
+
 
 app.mount("/api", api_app)
 # Mount static files
