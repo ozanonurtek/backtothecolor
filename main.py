@@ -208,17 +208,16 @@ async def health_check():
 
 
 app = FastAPI(title="main app")
-app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
-
 
 app.mount("/api", api_app)
 # Mount static files
 app.mount("/", staticfiles.StaticFiles(directory="ui", html=True), name="ui")
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://bactothecolor.onur.tk", "https://bactothecolor.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
