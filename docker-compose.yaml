@@ -3,6 +3,8 @@ version: '3.8'
 services:
   backtotheblack:
     image: backtotheblack/web:latest.${GITHUB_RUN_ID}
+    ports:
+      - 80:8000
     volumes:
       - /data/models:/app/models:ro
     build:
