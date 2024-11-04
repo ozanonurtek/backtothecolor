@@ -1,0 +1,20 @@
+name: backtotheblack prod pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: sel-hosted
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+      - name: Build and run
+        run: |
+          docker compose --file "docker-compose.yaml" build && docker stack deploy -c docker-compose.yaml backtotheblack && docker container prune -f
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
