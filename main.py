@@ -245,3 +245,15 @@ async def read_item(request: Request):
     return templates.TemplateResponse(
         request=request, name="ads.txt"
     )
+
+@app.get("/robots.txt", response_class=HTMLResponse)
+async def read_item(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="robots.txt"
+    )
+
+@app.get("/sitemap.xml", response_class=HTMLResponse)
+async def read_item(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="sitemap.xml"
+    )
