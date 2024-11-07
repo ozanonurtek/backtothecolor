@@ -7,3 +7,4 @@ numpy==1.24.2
 scikit-image
 matplotlib
 pillow-heif
+itsdangerous==2.2.0

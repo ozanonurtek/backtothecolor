@@ -5,16 +5,18 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from enum import Enum
+from typing import Optional
+from pillow_heif import register_heif_opener
+from PIL import Image, ImageDraw, ImageFont
 
 import torch
 import numpy as np
 import io
-from PIL import Image, ImageDraw, ImageFont
 import logging
-from enum import Enum
-from typing import Optional
-from pillow_heif import register_heif_opener
 import imghdr
+
 from pathlib import Path
 
 from colorizers import *
@@ -32,11 +34,29 @@ api_app = FastAPI(
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+serializer = URLSafeTimedSerializer("4XPuEHT4pw6I6Bo2nQl5SnAm")
+
 
 
 class ModelType(str, Enum):
     eccv16 = "eccv16"
     siggraph17 = "siggraph17"
+
+def generate_token(email, salt='EAs04WE5s53HlmHqic8BJPco'):
+    return serializer.dumps(email, salt=salt)
+
+
+def verify_token(token, salt='EAs04WE5s53HlmHqic8BJPco', max_age=86400):
+    try:
+        data = serializer.loads(token, salt=salt, max_age=max_age)
+        return data
+    except SignatureExpired:
+        # Token is valid but expired
+        return None
+    except BadSignature:
+        # Token is invalid
+        return None
+
 
 
 def detect_image_format(file_content: bytes) -> str:
@@ -113,12 +133,23 @@ class ColorizationService:
 colorizer_service = ColorizationService()
 
 
-@api_app.post("/colorize/")
+@api_app.post("/colorize/{identifier}")
 async def colorize_image(
+        identifier,
+        request: Request,
         file: UploadFile = File(...),
         model: ModelType = ModelType.siggraph17
 ):
     try:
+        headers = dict(request.headers)
+        x_real_ip = headers.get("CF-Connecting-IP", "unknown")
+        original = verify_token(identifier)
+        if original != x_real_ip:
+            raise HTTPException(400, "Unsupported identifier.")
+
+        # Get request headers
+        headers = dict(request.headers)
+        logger.info(f"Request headers: {headers}")
         # Read file content
         content = await file.read()
 
@@ -152,7 +183,7 @@ async def colorize_image(
         raise HTTPException(500, f"Error processing image: {str(e)}")
 
 
-@api_app.post("/colorize/compare")
+#@api_app.post("/colorize/compare")
 async def colorize_image_compare(file: UploadFile = File(...)):
     """
     Process an image with both models and return both results in a side-by-side comparison
@@ -230,8 +261,11 @@ app.add_middleware(
 templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
+    headers = dict(request.headers)
+    x_real_ip = headers.get("CF-Connecting-IP", "unknown")
+    identifier = generate_token(x_real_ip)
     return templates.TemplateResponse(
-        request=request, name="index.html"
+        request=request, name="index.html", context={"identifier": identifier}
     )
 
 @app.get("/privacy", response_class=HTMLResponse)
