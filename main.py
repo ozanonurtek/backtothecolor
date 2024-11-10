@@ -291,9 +291,3 @@ async def read_item(request: Request):
     return templates.TemplateResponse(
         request=request, name="sitemap.xml"
     )
-
-@app.get("/sw.js", response_class=HTMLResponse)
-async def read_item(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="sw.js"
-    )
