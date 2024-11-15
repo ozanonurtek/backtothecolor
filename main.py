@@ -5,25 +5,21 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-from enum import Enum
 from typing import Optional
-from pillow_heif import register_heif_opener
-from PIL import Image, ImageDraw, ImageFont
 from middleware.headers import CustomHeaderMiddleware
+from colorizer.service import ColorizationService, ModelType
+from security.serializer import Serializer
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 import torch
 import numpy as np
-import io
 import logging
 import imghdr
 
 from pathlib import Path
 
-from colorizers import *
-
-# Register HEIF opener with Pillow
-register_heif_opener()
+serializer = Serializer()
 
 # Initialize FastAPI app
 api_app = FastAPI(
@@ -60,98 +56,6 @@ i18n = {
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-serializer = URLSafeTimedSerializer("4XPuEHT4pw6I6Bo2nQl5SnAm")
-
-class ModelType(str, Enum):
-    eccv16 = "eccv16"
-    siggraph17 = "siggraph17"
-
-def generate_token(email, salt='EAs04WE5s53HlmHqic8BJPco'):
-    return serializer.dumps(email, salt=salt)
-
-
-def verify_token(token, salt='EAs04WE5s53HlmHqic8BJPco', max_age=86400):
-    try:
-        data = serializer.loads(token, salt=salt, max_age=max_age)
-        return data
-    except SignatureExpired:
-        # Token is valid but expired
-        return None
-    except BadSignature:
-        # Token is invalid
-        return None
-
-
-
-def detect_image_format(file_content: bytes) -> str:
-    """
-    Detect the image format from the file content
-    """
-    format_type = imghdr.what(None, file_content)
-    if format_type:
-        return format_type
-
-    # Check for HEIC format (imghdr doesn't detect HEIC)
-    if file_content.startswith(b'ftypheic') or file_content.startswith(b'ftypmif1'):
-        return 'heic'
-
-    return None
-
-
-def convert_heic_to_jpg(heic_content: bytes) -> Image.Image:
-    """
-    Convert HEIC image to JPEG format
-    """
-    try:
-        # Create a temporary BytesIO object to hold the HEIC data
-        heic_buffer = io.BytesIO(heic_content)
-
-        # Open and convert HEIC image
-        image = Image.open(heic_buffer)
-
-        # Convert to RGB if necessary
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
-
-        return image
-
-    except Exception as e:
-        logger.error(f"Error converting HEIC image: {str(e)}")
-        raise HTTPException(500, f"Error converting HEIC image: {str(e)}")
-
-
-class ColorizationService:
-    def __init__(self):
-        logger.info("Initializing colorization models...")
-        self.colorizer_eccv16 = eccv16(pretrained=True).eval()
-        self.colorizer_siggraph17 = siggraph17(pretrained=True).eval()
-        logger.info("Models initialized successfully")
-
-    def process_image(self, image: Image.Image, model_type: ModelType) -> Image.Image:
-        # Convert PIL Image to numpy array
-        img = np.array(image)
-
-        # Preprocess image
-        (tens_l_orig, tens_l_rs) = preprocess_img(img, HW=(256, 256))
-
-        # Select model
-        if model_type == ModelType.eccv16:
-            colorizer = self.colorizer_eccv16
-        else:
-            colorizer = self.colorizer_siggraph17
-
-        # Colorize
-        with torch.no_grad():
-            output_ab = colorizer(tens_l_rs).cpu()
-
-        # Postprocess
-        colorized_image = postprocess_tens(tens_l_orig, output_ab)
-
-        # Convert numpy array back to PIL Image
-        colorized_img = Image.fromarray((colorized_image * 255).astype(np.uint8))
-
-        return colorized_img
-
 
 # Initialize the colorization service
 colorizer_service = ColorizationService()
@@ -166,7 +70,7 @@ async def colorize_image(
 ):
     try:
         x_real_ip = request.state.x_real_ip
-        original = verify_token(identifier)
+        original = serializer.verify_token(identifier)
         if original != x_real_ip:
             raise HTTPException(400, "Unsupported identifier.")
 
@@ -177,14 +81,14 @@ async def colorize_image(
         content = await file.read()
 
         # Detect image format
-        image_format = detect_image_format(content)
+        image_format = colorizer_service.detect_image_format(content)
         if not image_format:
             raise HTTPException(400, "Unsupported image format. Please upload a PNG, JPG, or HEIC image.")
 
         # Handle different image formats
         if image_format == 'heic':
             logger.info("Converting HEIC image to JPG")
-            image = convert_heic_to_jpg(content)
+            image = colorizer_service.convert_heic_to_jpg(content)
         else:
             image = Image.open(io.BytesIO(content)).convert('RGB')
 
@@ -216,14 +120,14 @@ async def colorize_image_compare(file: UploadFile = File(...)):
         content = await file.read()
 
         # Detect image format
-        image_format = detect_image_format(content)
+        image_format = colorizer_service.detect_image_format(content)
         if not image_format:
             raise HTTPException(400, "Unsupported image format. Please upload a PNG, JPG, or HEIC image.")
 
         # Handle different image formats
         if image_format == 'heic':
             logger.info("Converting HEIC image to JPG")
-            image = convert_heic_to_jpg(content)
+            image = colorizer_service.convert_heic_to_jpg(content)
         else:
             image = Image.open(io.BytesIO(content)).convert('RGB')
 
@@ -288,7 +192,7 @@ async def read_item(request: Request):
     x_real_ip = request.state.x_real_ip
     lang = request.state.lang
 
-    identifier = generate_token(x_real_ip)
+    identifier = serializer.generate_token(x_real_ip)
     return templates.TemplateResponse(
         request=request, name="index.html", context={"identifier": identifier, "language": i18n[lang], "lang": lang}
     )
