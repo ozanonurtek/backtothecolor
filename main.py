@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Optional
 from pillow_heif import register_heif_opener
 from PIL import Image, ImageDraw, ImageFont
+from middleware.headers import CustomHeaderMiddleware
 
 import torch
 import numpy as np
@@ -31,12 +32,35 @@ api_app = FastAPI(
     version="1.0.0"
 )
 
+i18n = {
+  "en": {
+    "title": "backtothecolor - Add Color to Your Old Photos with AI",
+    "description": "Add color to your old black and white photos using our advanced AI colorization technology. Bring your memories back to life!",
+    "appDescription": "add color to your black and white images using AI",
+    "dragAndDropText": "drag and drop an image here or click to select",
+    "colorizingText": "Colorizing... This may take up to 30 seconds...",
+    "footerMadeWithText": "made with ❤️ by ",
+    "footerOnurLinkText": "ozanonurtek. ",
+    "footerGuzelyaliText": "in guzelyalı",
+    "footerNoDataStoredText": "no data is stored on our servers"
+  },
+  "tr": {
+    "title": "backtothecolor - Yapay Zeka ile Eski Fotoğraflarınıza Renk Ekleyin",
+    "description": "Gelişmiş yapay zeka renklendirme teknolojimizi kullanarak eski siyah beyaz fotoğraflarınıza renk ekleyin. Anılarınızı hayata döndürün!",
+    "appDescription": "Yapay zeka kullanarak siyah beyaz fotoğraflarınıza renk ekleyin",
+    "dragAndDropText": "Buraya bir resim sürükleyip bırakın veya seçmek için tıklayın",
+    "colorizingText": "Renklendirme... Bu 30 saniye sürebilir...",
+    "footerMadeWithText": "Guzelyalı'da ❤️ ile ",
+    "footerOnurLinkText": "ozanonurtek",
+    "footerGuzelyaliText": " tarafından yapıldı.",
+    "footerNoDataStoredText": "sunucularımızda veri saklanmaz"
+  }
+}
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 serializer = URLSafeTimedSerializer("4XPuEHT4pw6I6Bo2nQl5SnAm")
-
-
 
 class ModelType(str, Enum):
     eccv16 = "eccv16"
@@ -141,8 +165,7 @@ async def colorize_image(
         model: ModelType = ModelType.siggraph17
 ):
     try:
-        headers = dict(request.headers)
-        x_real_ip = headers.get("CF-Connecting-IP", "unknown")
+        x_real_ip = request.state.x_real_ip
         original = verify_token(identifier)
         if original != x_real_ip:
             raise HTTPException(400, "Unsupported identifier.")
@@ -247,7 +270,7 @@ app.mount("/api", api_app)
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
-
+app.add_middleware(CustomHeaderMiddleware)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -262,10 +285,12 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
     headers = dict(request.headers)
-    x_real_ip = headers.get("CF-Connecting-IP", "unknown")
+    x_real_ip = request.state.x_real_ip
+    lang = request.state.lang
+
     identifier = generate_token(x_real_ip)
     return templates.TemplateResponse(
-        request=request, name="index.html", context={"identifier": identifier}
+        request=request, name="index.html", context={"identifier": identifier, "language": i18n[lang], "lang": lang}
     )
 
 @app.get("/privacy", response_class=HTMLResponse)

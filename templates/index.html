@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{lang}}">
 <head>
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -18,14 +18,14 @@
     gtag('config', 'G-1WL1B3W1T7');
     </script>
     <meta charset="utf-8"/>
-    <title>backtothecolor - Add Color to Your Old Photos with AI</title>
-    <meta name="description" content="Add color to your old black and white photos using our advanced AI colorization technology. Bring your memories back to life!">
+    <title>{{language["title"]}}</title>
+    <meta name="description" content="{{language['description']}}">
     <meta name="keywords" content="AI, colorization, photo, image, black and white, color, old photos, enhance, restore, memories, mono">
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <meta property="og:title" content="backtothecolor - Add Color to Your Old Photos with AI" />
-    <meta property="og:description" content="Add color to your old black and white photos using our advanced AI colorization technology. Bring your memories back to life!" />
+    <meta property="og:title" content="{{language['title']}}" />
+    <meta property="og:description" content="{{language['description']}}" />
     <meta property="og:image" content="/static/backtothecolor.png" />
-    <meta property="og:url" content="backtothecolor.onur.tk" />
+    <meta property="og:url" content="backtothecolor.com" />
     <meta property="og:type" content="website" />
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com"/>
@@ -180,13 +180,13 @@
             </div>
     </nav>
     <div id="container" class="p-4 rounded shadow-lg">
-        <p id="app-description" class="text-center text-light">add color to your black and white images using AI.</p>
+        <p id="app-description" class="text-center text-light">{{language["appDescription"]}}</p>
         <div id="drop-area" class="d-flex justify-content-center align-items-center p-5 rounded">
-            <p class="text-center">drag and drop an image here or click to select</p>
+            <p class="text-center">{{language["dragAndDropText"]}}</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
         <div class="loading text-center text-light">
-            <p>Colorizing... This may take up to 30 seconds...</p>
+            <p>{{language["colorizingText"]}}</p>
         </div>
         <img id="colorizedImage" src="" class="img-fluid rounded shadow-sm">
     </div> 
@@ -194,8 +194,8 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-12">
-                    <p>made with ❤️ by <a href="https://onur.tk" target="_blank">ozanonurtek</a> in guzelyalı</p>
-                    <p>no data is stored on our servers</p>
+                    <p>{{language["footerMadeWithText"]}}<a href="https://onur.tk" target="_blank">{{language["footerOnurLinkText"]}}</a>{{language["footerGuzelyaliText"]}}</p>
+                    <p><a href="/privacy" target="_blank">{{language["footerNoDataStoredText"]}}</a></p>
                 </div>
         </div>
     </footer>
